@@ -28,9 +28,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#define MEMORY_DEBUG_ENABLED 1
+
+#if MEMORY_DEBUG_ENABLED
+
+#define MEMORY_ASSERT(x)	\
+	do						\
+	{						\
+		if(!(x))			\
+			__debugbreak();	\
+	} while(0)
+
+#else
+
+#define MEMORY_ASSERT(x) do{} while(0)
+
+#endif
+
+#include <cstddef>	// std::size_t
+
 namespace memory
 {
-	using size_type = unsigned long;
+	using size_type = std::size_t;
 
 	// TODO(Borja): callback for when we run out of memory
 
@@ -61,7 +80,7 @@ namespace memory
 		{
 			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
 		}
-		static void deallocate(T * mem)
+		static void deallocate(T * mem, size_type = 1)
 		{
 			return global_dealloc(reinterpret_cast<void *>(mem));
 		}
@@ -74,5 +93,11 @@ namespace memory
 		static size_type free_size() { return ~0ul; }
 	};
 
+	/// \brief hHelper function to convert an address to a numerical value.
+	template <typename T>
+	size_type ptr_to_num(const T * ptr)
+	{
+		return reinterpret_cast<size_type>(reinterpret_cast<const size_type *>(ptr));
+	}
 }
 

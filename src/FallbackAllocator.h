@@ -74,10 +74,14 @@ namespace memory
 			return Fallback::allocate(n);
 		}
 
-		void deallocate(value_type * mem)
+		void deallocate(value_type * mem, size_type n = 1)
 		{
-			if (Primary::owns(mem))	Primary::deallocate(mem);
-			else Fallback::deallocate(mem);
+			if (Primary::owns(mem))	Primary::deallocate(mem, n);
+			else
+			{
+				MEMORY_ASSERT(Fallback::owns(mem));
+				Fallback::deallocate(mem, n);
+			}
 		}
 
 		bool owns(const value_type * mem) const

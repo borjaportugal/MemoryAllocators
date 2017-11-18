@@ -31,65 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FallbackAllocator.h"
 #include "GlobalAllocator.h"
 
+#include <bitset>
+
+#ifndef DEBUG_INLINE_ALLOCATOR_ENABLED 
+#define DEBUG_INLINE_ALLOCATOR_ENABLED MEMORY_DEBUG_ENABLED
+#endif
+
 namespace memory
-{	
-	/// \brief	Stores the input number of bytes in the class instance.
-	/// This class is designed to be used in the stack to provide fast allocations.
-	/// IMPORTANT(Borja): deallocations are not tracked, once allocate has been called on an instance 
-	///						with a total number of bytes >= to BYTES, the allocator will fail.
-	template <size_type BYTES>
-	class InlineMemory
-	{
-	public:
-		static constexpr size_type total_size = BYTES;
-
-		InlineMemory() = default;
-		InlineMemory(const InlineMemory &) = delete;
-		InlineMemory(InlineMemory &&) = delete;
-		InlineMemory& operator =(const InlineMemory &) = delete;
-		InlineMemory& operator=(InlineMemory &&) = delete;
-
-		void * allocate(size_type n = 1)
-		{
-			if (free_size() < n)	return nullptr;
-			auto * result = m_top;
-			m_top += n;
-			return result;
-		}
-
-		void deallocate(void * mem, size_type)
-		{
-			// we are not tracking deallocations, this memory is thought to be contiguous
-
-			// TODO(Borja): should we handle deallocations?
-		}
-
-		bool is_full() const
-		{
-			return m_top >= m_memory + total_size;
-		}
-
-		bool owns(const void * mem) const
-		{
-			return (reinterpret_cast<const unsigned char *>(mem) - m_memory) < total_size;
-		}
-
-		size_type free_size() const
-		{
-			return static_cast<size_type>(total_size - (m_top - m_memory));
-		}
-
-		void free_all()
-		{
-			m_top = m_memory;
-		}
-
-	private:
-		unsigned char * m_top{ m_memory };
-		unsigned char m_memory[total_size];
-
-	};
-
+{
 	/// \brief	This type should never be instantiated, serves as information
 	/// in case at some point we try to instantiate it and the compiler complains.
 	struct InlineAllocatorWildcard 
@@ -102,22 +51,19 @@ namespace memory
 		InlineAllocatorWildcard& operator=(InlineAllocatorWildcard&&) = delete;
 	};
 
-	/// \brief	Allocates memory for the given number of T elements, see InlineMemory for more details.
+	/// \brief	Allocates memory for the given number of T elements.
 	///			Take first the number of elements so that we can pass just the allocator with the size and
 	///			then rebind it to any type. (i.e. InlineAllocator<15>::rebind_t<int> my_alloc;)
 	template <size_type N, typename T = InlineAllocatorWildcard>
 	class InlineAllocator
-		: private InlineMemory<sizeof(T) * N>
 	{
-	private:
-		using Base = InlineMemory<sizeof(T) * N>;
-
 	public:
 		template <typename U>
 		using rebind_t = InlineAllocator<N, U>;
 
-		static constexpr size_type total_size = Base::total_size;
-		static constexpr size_type alloc_size = sizeof(T);
+		static constexpr size_type object_num = N;
+		static constexpr size_type object_size = sizeof(T);
+		static constexpr size_type total_size = object_size * object_num;
 		using value_type = T;
 
 		InlineAllocator() = default;
@@ -128,28 +74,89 @@ namespace memory
 
 		virtual T * allocate(size_type n = 1)
 		{
-			return reinterpret_cast<T *>(Base::allocate(n * alloc_size));
+			const auto idx = find_block_for_objects(n);
+			if (idx < object_num)
+			{
+				set_flags(idx, n, true);
+				return reinterpret_cast<T *>(m_memory + idx * sizeof(T));
+			}
+
+			return nullptr;
 		}
 
 		virtual void deallocate(T * mem, size_type n = 1)
 		{
-			Base::deallocate(reinterpret_cast<void *>(mem), n);
+			MEMORY_ASSERT(owns(mem));
+			set_flags(get_idx(mem), n, false);
 		}
 
 		bool is_full() const
 		{
-			return Base::free_size() < sizeof(T);
+			return free_size() < sizeof(T);
 		}
 
-		bool owns(const T * mem) const
+		bool owns(const T * obj) const
 		{
-			return Base::owns(mem);
+			const auto ptr_val = ptr_to_num(obj);
+			const auto start = ptr_to_num(m_memory);
+
+			// make sure object is whithin our memory and at the correct offset
+			const auto base = (ptr_val - start);
+			return (base < total_size) && (base % object_size == 0);
 		}
 
 		size_type free_size() const
 		{
-			return Base::free_size();
+			const auto free_objects = N - m_alloc_flags.count();
+			return free_objects * object_size;
 		}
+
+	private:
+		void set_flags(size_type idx, size_type n, bool flag)
+		{
+			n += idx;
+			for (size_type i = idx; i < n; ++i)
+			{
+				MEMORY_ASSERT(m_alloc_flags.test(i) != flag);
+				m_alloc_flags.set(i, flag);
+			}
+		}
+		size_type find_block_for_objects(size_type n) const
+		{
+			if (object_num < n)	return object_num;
+
+			// STUDY(Borja): How could we improve this search?
+			for (size_type i = 0; i <= object_num - n; ++i)
+			{
+				bool succeded = true;
+				for (size_type j = i; j < i + n; ++j)
+				{
+					if (m_alloc_flags.test(j))
+					{
+						succeded = false;
+						i = j;
+						break;
+					}
+				}
+
+				if (succeded)
+					return i;
+			}
+
+			// no block available
+			return object_num;
+		}
+		size_type get_idx(const T * mem) const
+		{
+			const auto ptr_val = ptr_to_num(mem);
+			const auto start = ptr_to_num(m_memory);
+			return (ptr_val - start) / object_size;
+		}
+
+		// STUDY(Borja): store int containing the number of free objects?
+
+		std::bitset<N> m_alloc_flags;
+		unsigned char m_memory[total_size];
 	};
 
 	/// \brief	The inline allocator returns nullptr when the memory is over,
@@ -216,7 +223,8 @@ namespace memory
 	
 	namespace impl
 	{
-		/// \brief	
+		/// \brief	Inline allocator that generates statistics of its allocations.
+		///			The user should use the macro DEBUG_INLINE_ALLOCATOR to instantiate inline allocators in which he wants statistics.
 		template <size_type N, typename T = InlineAllocatorWildcard>
 		class DebugInlineAllocator
 			: public DefaultInlineAllocator<N, T>
@@ -240,6 +248,7 @@ namespace memory
 			{}
 			~DebugInlineAllocator()
 			{
+				// if there was any allocation we couldn't track, track it
 				if (m_initial_non_inline_allocs != m_stats->non_inline_allocs)
 					m_stats->uses_implying_non_inline_allocs++;
 			}
@@ -254,6 +263,8 @@ namespace memory
 
 		private:
 			DebugInlineAllocatorStats * m_stats{ nullptr };
+
+			/// \brief	Used to check if this instance of the allocator coulnd't handle an allocation.
 			size_type m_initial_non_inline_allocs{ 0u };
 		};
 	}
@@ -265,18 +276,7 @@ namespace memory
 #if DEBUG_INLINE_ALLOCATOR_ENABLED
 
 #include <ostream>
-inline std::ostream & operator<< (std::ostream & os, const ::memory::DebugInlineAllocatorStats & stats)
-{
-	os << stats.filename << "[" << stats.line << "]: " << stats.type_name << '\n'
-		<< "    Object size: " << stats.object_size
-		<< ", Inlined Objects: " << stats.inline_object_num << "[#" << stats.object_size * stats.inline_object_num << " bytes]"
-		<< ", Allocs: " << stats.allocation_num
-		<< ", Uses: " << stats.use_num
-		<< ", Average Size: " << stats.average_objects()
-		<< ", Non inline alloc uses: " << stats.uses_implying_non_inline_allocs << " [" << stats.non_inline_alloc_use_percentage() << "%]"
-		<< ", Non inline allocs: " << stats.non_inline_allocs << " [" << stats.non_inline_alloc_percentage() << "%]";
-	return os;
-}
+std::ostream & operator<< (std::ostream & os, const ::memory::DebugInlineAllocatorStats & stats);
 
 /// \brief	Must be used to define inline allocators from which we want statistics.
 #	define DEBUG_INLINE_ALLOCATOR(N, T, allocator_name, alloc_typename)														\

@@ -136,6 +136,7 @@
     <ClInclude Include="testing\testing.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="InlineAllocator.cpp" />
     <ClCompile Include="testing\testing.cpp" />
     <ClCompile Include="tests\Allocators-test.cpp" />
     <ClCompile Include="tests\tests_main.cpp" />

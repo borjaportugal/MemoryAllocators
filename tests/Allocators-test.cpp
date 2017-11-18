@@ -52,7 +52,27 @@ TEST_F(inline_allocator_can_request_all_the_free_size)
 	InlineAllocator<14, double> double_alloc;
 	TEST_ASSERT(double_alloc.free_size() == sizeof(double) * 14);
 }
-TEST_F(inline_allocator_can_allocate_objects)
+TEST_F(inline_allocator_allocations_are_contiguous)
+{
+	InlineAllocator<4, int> int_alloc;
+
+	int * a = int_alloc.allocate();
+	int * b = int_alloc.allocate();
+
+	TEST_ASSERT(a + 1 == b);
+}
+TEST_F(inline_allocator_can_allocate_more_than_one_object_at_a_time)
+{
+	InlineAllocator<5, int> int_alloc;
+
+	int * a = int_alloc.allocate();
+	int * b = int_alloc.allocate(2);
+	int * c = int_alloc.allocate(2);
+
+	TEST_ASSERT(a + 1 == b);
+	TEST_ASSERT(b + 2 == c);
+}
+TEST_F(inline_allocator_can_check_if_has_more_space_left)
 {
 	InlineAllocator<4, int> int_alloc;
 
@@ -65,10 +85,19 @@ TEST_F(inline_allocator_can_allocate_objects)
 	int * last_int = int_alloc.allocate();
 
 	TEST_ASSERT(int_alloc.is_full());
+}
+TEST_F(inline_allocator_returns_null_on_failure)
+{
+	InlineAllocator<4, int> int_alloc;
 
-	int_alloc.deallocate(an_int);
-	int_alloc.deallocate(two_ints);
-	int_alloc.deallocate(last_int);
+	TEST_ASSERT(int_alloc.allocate() != nullptr);
+	TEST_ASSERT(int_alloc.allocate(2) != nullptr);
+
+	TEST_ASSERT(int_alloc.allocate(10) == nullptr);
+
+	TEST_ASSERT(int_alloc.allocate() != nullptr);
+
+	TEST_ASSERT(int_alloc.allocate() == nullptr);
 }
 TEST_F(inline_allocator_can_determine_if_a_pointer_was_allocated_by_him)
 {
@@ -82,6 +111,26 @@ TEST_F(inline_allocator_can_determine_if_a_pointer_was_allocated_by_him)
 	
 	int non_owned_by_int_alloc;
 	TEST_ASSERT(int_alloc.owns(&non_owned_by_int_alloc) == false);
+
+	const int * invalid = reinterpret_cast<int *>(reinterpret_cast<char *>(an_int) + 1);
+	TEST_ASSERT(int_alloc.owns(invalid) == false);
+}
+TEST_F(inline_allocator_can_deallocate_objects)
+{
+	InlineAllocator<4, int> int_alloc;
+
+	int * a = int_alloc.allocate();	// a 0 0 0
+	int * b = int_alloc.allocate(); // a b 0 0
+	int_alloc.deallocate(a);		// 0 b 0 0
+	int * c = int_alloc.allocate(2);// 0 b c c
+
+	int * x = int_alloc.allocate();
+	TEST_ASSERT(x == a);		// x b c c
+
+	int_alloc.deallocate(c, 2);	// x b 0 0
+	int_alloc.deallocate(b);	// x 0 0 0
+
+	TEST_ASSERT(int_alloc.allocate(3) == b);
 }
 TEST_F(inline_allocator_provides_an_interface_to_rebind_the_type)
 {
@@ -151,9 +200,9 @@ TEST_F(default_inline_allocator_has_some_way_to_allocate_memory_when_there_is_no
 	int * c = alloc.allocate(4);	// inline
 	TEST_ASSERT(c != nullptr);
 
-	alloc.deallocate(a);
-	alloc.deallocate(b);
-	alloc.deallocate(c);
+	alloc.deallocate(a, 12);
+	alloc.deallocate(b, 5);
+	alloc.deallocate(c, 4);
 }
 
 // DebugInlineAllocator

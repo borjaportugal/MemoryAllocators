@@ -190,7 +190,8 @@ namespace testing { namespace impl {														\
 #define _TESTING_DECLARE_TEST(category, name)	\
 	_TESTING_DECLARE_TEST_INNER(category, name, category ##_## name)
 
-
+#define _TESTING_STRINGIFY(x)		_TESTING_STRINGIFY_INNER(x)
+#define _TESTING_STRINGIFY_INNER(x)	#x
 
 
 // =============================================================
@@ -199,7 +200,7 @@ namespace testing { namespace impl {														\
 
 
 ///	\brief	If the condition is not satisfied the test fails.
-#define TEST_ASSERT(cond) do { if (!(cond))	throw std::exception{ "Condition ( " #cond " ) not satisfied." , __LINE__ }; } while (0)
+#define TEST_ASSERT(cond) do { if (!(cond))	throw std::exception{ "Condition ( " #cond " ) at line " _TESTING_STRINGIFY(__LINE__) " not satisfied." , __LINE__ }; } while (0)
 
 ///	\brief	Test fails inmediately.
 #define TEST_FAILED() TEST_ASSERT(false)
