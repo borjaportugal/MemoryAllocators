@@ -266,7 +266,7 @@ namespace memory
 				if (m_initial_non_inline_allocs != m_stats->non_inline_allocs)
 					m_stats->uses_implying_non_inline_allocs++;
 
-				fill_with_pattern(Pattern::FREE, get_primary().m_memory, total_size);
+				fill_with_pattern(Pattern::RELEASED, get_primary().m_memory, total_size);
 			}
 
 			T * allocate(size_type n = 1) override final

@@ -94,3 +94,55 @@ TEST(StackAllocatorTest, stack_allocator_retunrs_null_when_cannot_allocated_the_
 }
 
 
+// DebugStackAllocator
+
+#if MEMORY_DEBUG_ENABLED
+
+TEST_F(debug_stack_allocator_generates_statistics)
+{
+	DebugStackAllocator alloc{ 16 };
+
+	auto * a = alloc.allocate(8);
+	auto * b = alloc.allocate(4);
+	auto * c = alloc.allocate(3);
+	alloc.allocate(100);
+	alloc.deallocate(c, 3);
+
+	const auto & stats = alloc.get_stats();
+	TEST_ASSERT(stats.allocations == 3);
+	TEST_ASSERT(stats.deallocations == 1);
+	TEST_ASSERT(stats.failures == 1);
+
+	TEST_ASSERT(stats.per_allocation_stats.size() == 3);
+	TEST_ASSERT(stats.per_allocation_stats[0].size == 8);
+	TEST_ASSERT(stats.per_allocation_stats[0].offset == 0);
+	TEST_ASSERT(stats.per_allocation_stats[1].size == 4);
+	TEST_ASSERT(stats.per_allocation_stats[1].offset == 8);
+	TEST_ASSERT(stats.per_allocation_stats[2].size == 3);
+	TEST_ASSERT(stats.per_allocation_stats[2].offset == 12);
+}
+
+TEST_F(debug_stack_allocator_fills_the_memory_with_patternss)
+{
+	DebugStackAllocator alloc{ 16 };
+
+	constexpr size_type allocated_bytes = 10;
+	constexpr size_type free_bytes = 6;
+
+	auto * a = alloc.allocate(allocated_bytes);
+	unsigned char * allocated_raw = reinterpret_cast<unsigned char *>(a);
+	unsigned char * free_raw = allocated_raw + allocated_bytes;
+
+	for (unsigned i = 0; i < allocated_bytes; ++i)
+		TEST_ASSERT(allocated_raw[i] == Pattern::ALLOCATED);
+	for (unsigned i = 0; i < free_bytes; ++i)
+		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+
+	alloc.deallocate(a, allocated_bytes);
+	for (unsigned i = 0; i < allocated_bytes; ++i)
+		TEST_ASSERT(allocated_raw[i] == Pattern::DEALLOCATED);
+	for (unsigned i = 0; i < free_bytes; ++i)
+		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+}
+
+#endif

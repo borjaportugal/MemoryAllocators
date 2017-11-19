@@ -88,3 +88,86 @@ namespace memory
 	};
 }
 
+
+
+#if MEMORY_DEBUG_ENABLED
+
+#include <deque>
+
+namespace memory
+{
+	struct DebugStackAllocatorConfig
+	{
+		size_type padding{ 0u };
+	};
+
+	class DebugStackAllocator
+		: public StackAllocator
+	{
+	public:
+		using Base = StackAllocator;
+
+		struct Stats
+		{
+			struct AllocationStats
+			{
+				AllocationStats(size_type s, size_type off)
+					: size{ s }
+					, offset{ off }
+				{}
+
+				size_type size{ 0u };
+				size_type offset{ 0u };
+			};
+
+			size_type allocations{ 0 };
+			size_type deallocations{ 0 };
+			size_type failures{ 0 };
+			std::deque<AllocationStats> per_allocation_stats;
+		};
+
+	public:
+		explicit DebugStackAllocator(size_type bytes)
+			: Base{ bytes }
+		{
+			fill_with_pattern(Pattern::ACQUIRED, m_memory_chunk.get_memory(), m_memory_chunk.get_bytes());
+		}
+		~DebugStackAllocator()
+		{
+			fill_with_pattern(Pattern::RELEASED, m_memory_chunk.get_memory(), m_memory_chunk.get_bytes());
+		}
+
+		unsigned char * allocate(size_type bytes) override
+		{
+			if (auto * allocated = Base::allocate(bytes))
+			{
+				m_stats.allocations++;
+				m_stats.per_allocation_stats.emplace_back(bytes, get_offset_from_base(m_top) - bytes);
+				fill_with_pattern(Pattern::ALLOCATED, allocated, bytes);
+				return allocated;
+			}
+
+			m_stats.failures++;
+			return nullptr;
+		}
+
+		void deallocate(unsigned char * mem, size_type bytes) override
+		{
+			m_stats.deallocations++;
+			fill_with_pattern(Pattern::DEALLOCATED, mem, bytes);
+			Base::deallocate(mem, bytes);
+		}
+
+		const Stats & get_stats() const
+		{
+			return m_stats;
+		}
+
+	private:
+		Stats m_stats;
+	};
+}
+
+
+
+#endif

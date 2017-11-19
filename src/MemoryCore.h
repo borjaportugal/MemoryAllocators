@@ -89,7 +89,7 @@ namespace memory
 		PADDING = 0xBB,		// pad to debug memory corruptions
 		ACQUIRED = 0xCC,	// memory has been allocated by an allocator but not given to the user jet
 		DEALLOCATED = 0xDD,	// call to deallocate
-		FREE = 0xFF,		// memory that no longer belongs to allocators
+		RELEASED = 0xFF,	// memory that no longer belongs to allocators (could be freed memory or stack memory)
 	};
 	
 #if MEMORY_ENABLE_DEBUG_PATTERNS

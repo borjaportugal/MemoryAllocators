@@ -108,7 +108,7 @@ TEST_F(inline_allocator_can_determine_if_a_pointer_was_allocated_by_him)
 
 	TEST_ASSERT(int_alloc.owns(an_int));
 	TEST_ASSERT(int_alloc.owns(two_ints));
-	
+
 	int non_owned_by_int_alloc;
 	TEST_ASSERT(int_alloc.owns(&non_owned_by_int_alloc) == false);
 
@@ -158,7 +158,7 @@ public:
 
 TEST(DebugInlineAllocatorTest, can_generate_debug_statistics_of_inline_allocators)
 {
-	
+
 
 	// simulate one call to the function where the inline allocator is defined
 	{
@@ -229,31 +229,24 @@ TEST(DebugInlineAllocatorTest, debug_inline_allocator_sets_memory_patterns)
 
 	constexpr size_type inlined_object_num = 4;
 
-	{
-		impl::DebugInlineAllocator<4, int> alloc{ stats };
+	impl::DebugInlineAllocator<4, int> alloc{ stats };
 
-		int * a = alloc.allocate(2);
+	int * a = alloc.allocate(2);
 
-		allocated_raw = reinterpret_cast<unsigned char *>(a);
-		free_raw = allocated_raw + sizeof(int) * 2;
+	allocated_raw = reinterpret_cast<unsigned char *>(a);
+	free_raw = allocated_raw + sizeof(int) * 2;
 
-		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-			TEST_ASSERT(allocated_raw[i] == Pattern::ALLOCATED);
-		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-			TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
-
-		alloc.deallocate(a, 2);
-
-		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-			TEST_ASSERT(allocated_raw[i] == Pattern::DEALLOCATED);
-		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-			TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
-	}
-
-	for (unsigned i = 0; i < sizeof(int) * inlined_object_num; ++i)
-		TEST_ASSERT(allocated_raw[i] == Pattern::FREE);
 	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-		TEST_ASSERT(free_raw[i] == Pattern::FREE);
+		TEST_ASSERT(allocated_raw[i] == Pattern::ALLOCATED);
+	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+
+	alloc.deallocate(a, 2);
+
+	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+		TEST_ASSERT(allocated_raw[i] == Pattern::DEALLOCATED);
+	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
 }
 
 #endif
