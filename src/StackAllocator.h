@@ -26,49 +26,59 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 #pragma once
 
 #include "MemoryCore.h"
-#include "FallbackAllocator.h"
+#include "MemoryChunk.h"
 
 namespace memory
 {
-	/// \brief	Wraper to allocate memory when all other methods fail.
-	template <typename T>
-	class GlobalAllocator
+	/// \brief	The StackAllocator just moves a pointer to determine the begginign and ending of 
+	///			allocated memory. Deallocations need to occur in reverse order to allocations.
+	class StackAllocator
 	{
+		// NOTE(Borja): Implementation inside the .h to let the compiler inline if he thinks its a good idea :D
 	public:
-		using value_type = T;
+		explicit StackAllocator(size_type bytes)
+			: m_memory_chunk{ bytes }
+			, m_top { m_memory_chunk.get_memory() }
+		{}
 
-		template <typename U>
-		using rebind_t = GlobalAllocator<U>;
-
-		GlobalAllocator() = default;
-		template <typename U>
-		GlobalAllocator(const rebind_t<U> &) {}
-
-		static T * allocate(size_type n)
+		unsigned char * allocate(size_type bytes)
 		{
-			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
-		}
-		static void deallocate(T * mem, size_type = 1)
-		{
-			return global_dealloc(reinterpret_cast<void *>(mem));
+			auto * result = m_top;
+			m_top += bytes;
+			return result;
 		}
 
-		// assume we own all memory
-		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static size_type free_size() { return ~0ul; }
+		void deallocate(unsigned char * mem, size_type bytes)
+		{
+			MEMORY_ASSERT(mem == m_top - bytes);
+			m_top = mem;
+		}
+
+		bool is_full() const
+		{
+			return free_size() == 0;
+		}
+
+		size_type free_size() const
+		{
+			return ptr_to_num(m_memory_chunk.end_of_memory()) - ptr_to_num(m_top);
+		}
+
+		size_type owns(unsigned char * mem) const
+		{
+			return m_memory_chunk.owns(mem);
+		}
+
+	private:
+		// IMPORTANT(Borja): don't change the order of these two variables, construction order matters
+		MemoryChunk m_memory_chunk;
+		unsigned char * m_top{ nullptr };
 	};
 
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
+
 }
 

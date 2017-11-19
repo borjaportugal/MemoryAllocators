@@ -26,49 +26,32 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
+#include "testing\testing.h"
 
-#include "MemoryCore.h"
-#include "FallbackAllocator.h"
+#include "MemoryChunk.h"
+using namespace memory;
 
-namespace memory
+TEST_F(memory_chunk_provides_simple_gettors)
 {
-	/// \brief	Wraper to allocate memory when all other methods fail.
-	template <typename T>
-	class GlobalAllocator
-	{
-	public:
-		using value_type = T;
+	MemoryChunk chunk{ 128 };
+	TEST_ASSERT(chunk.get_bytes() == 128);
 
-		template <typename U>
-		using rebind_t = GlobalAllocator<U>;
+	const auto * base = chunk.get_memory();
+	const auto * offseted = chunk.get_memory(40);
+	TEST_ASSERT(offseted == base + 40);
 
-		GlobalAllocator() = default;
-		template <typename U>
-		GlobalAllocator(const rebind_t<U> &) {}
-
-		static T * allocate(size_type n)
-		{
-			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
-		}
-		static void deallocate(T * mem, size_type = 1)
-		{
-			return global_dealloc(reinterpret_cast<void *>(mem));
-		}
-
-		// assume we own all memory
-		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static size_type free_size() { return ~0ul; }
-	};
-
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
+	TEST_ASSERT(chunk.end_of_memory() == base + 128);
 }
+
+TEST_F(memory_chunk_can_determine_if_some_memory_is_in_its_bound)
+{
+	MemoryChunk chunk{ 128 };
+	
+	TEST_ASSERT(chunk.owns(chunk.get_memory()));
+	TEST_ASSERT(chunk.owns(chunk.get_memory() + 50));
+	TEST_ASSERT(chunk.owns(chunk.get_memory() + 127));
+	TEST_ASSERT(chunk.owns(chunk.get_memory() + 128) == false);
+	TEST_ASSERT(chunk.owns(chunk.get_memory() - 50) == false);
+}
+
 

@@ -28,47 +28,55 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "MemoryCore.h"
-#include "FallbackAllocator.h"
+#define MEMORY_DEBUG_ENABLED 1
+
+#if MEMORY_DEBUG_ENABLED
+
+#define MEMORY_ASSERT(x)	\
+	do						\
+	{						\
+		if(!(x))			\
+			__debugbreak();	\
+	} while(0)
+
+#else
+
+#define MEMORY_ASSERT(x) do{} while(0)
+
+#endif
+
+#include <cstddef>	// std::size_t
 
 namespace memory
 {
-	/// \brief	Wraper to allocate memory when all other methods fail.
-	template <typename T>
-	class GlobalAllocator
+	using size_type = std::size_t;
+
+	// TODO(Borja): callback for when we run out of memory
+
+	inline void * global_alloc(size_type n)
 	{
-	public:
-		using value_type = T;
+		return ::operator new(n);
+	}
+	inline void global_dealloc(void * mem)
+	{
+		::operator delete(mem);
+	}
 
-		template <typename U>
-		using rebind_t = GlobalAllocator<U>;
+	inline size_type kilo_to_byte(size_type kb)
+	{
+		return kb * 1024;
+	}
+	inline size_type mega_to_byte(size_type mb)
+	{
+		return kilo_to_byte(mb * 1024);
+	}
 
-		GlobalAllocator() = default;
-		template <typename U>
-		GlobalAllocator(const rebind_t<U> &) {}
+	/// \brief hHelper function to convert an address to a numerical value.
+	template <typename T>
+	inline size_type ptr_to_num(const T * ptr)
+	{
+		return reinterpret_cast<size_type>(reinterpret_cast<const size_type *>(ptr));
+	}
 
-		static T * allocate(size_type n)
-		{
-			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
-		}
-		static void deallocate(T * mem, size_type = 1)
-		{
-			return global_dealloc(reinterpret_cast<void *>(mem));
-		}
-
-		// assume we own all memory
-		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static size_type free_size() { return ~0ul; }
-	};
-
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
 }
 

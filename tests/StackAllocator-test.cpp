@@ -26,49 +26,63 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pragma once
 
-#include "MemoryCore.h"
-#include "FallbackAllocator.h"
+#include "testing\testing.h"
 
-namespace memory
+#include "StackAllocator.h"
+using namespace memory;
+
+TEST_F(stack_allocator_allocates_the_requested_size)
 {
-	/// \brief	Wraper to allocate memory when all other methods fail.
-	template <typename T>
-	class GlobalAllocator
-	{
-	public:
-		using value_type = T;
+	StackAllocator alloc{ 16 };
 
-		template <typename U>
-		using rebind_t = GlobalAllocator<U>;
-
-		GlobalAllocator() = default;
-		template <typename U>
-		GlobalAllocator(const rebind_t<U> &) {}
-
-		static T * allocate(size_type n)
-		{
-			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
-		}
-		static void deallocate(T * mem, size_type = 1)
-		{
-			return global_dealloc(reinterpret_cast<void *>(mem));
-		}
-
-		// assume we own all memory
-		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static size_type free_size() { return ~0ul; }
-	};
-
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
+	TEST_ASSERT(alloc.free_size() == 16);
 }
 
+TEST_F(stack_allocator_can_allocate_memory)
+{
+	StackAllocator alloc{ 16 };
+
+	alloc.allocate(5);
+	TEST_ASSERT(alloc.free_size() == 11);
+
+	alloc.allocate(6);
+	TEST_ASSERT(alloc.free_size() == 5);
+}
+
+TEST_F(stack_allocator_can_deallocate_memory)
+{
+	StackAllocator alloc{ 16 };
+
+	auto * mem = alloc.allocate(5);
+	alloc.deallocate(mem, 5);
+	TEST_ASSERT(alloc.free_size() == 16);
+}
+
+TEST_F(stack_allocator_deallocated_memory_can_be_reused)
+{
+	StackAllocator alloc{ 16 };
+
+	auto * mem = alloc.allocate(5);
+	alloc.deallocate(mem, 5);
+
+	auto * mem2 = alloc.allocate(1);
+	TEST_ASSERT(mem == mem2);
+}
+
+TEST_F(stack_allocator_deallocated_memory_can_determine_if_is_full)
+{
+	StackAllocator alloc{ 16 };
+
+	auto * a = alloc.allocate(14);
+	TEST_ASSERT(alloc.is_full() == false);
+
+	auto * b = alloc.allocate(2);
+	TEST_ASSERT(alloc.is_full() == true);
+
+	alloc.deallocate(b, 2);
+	TEST_ASSERT(alloc.is_full() == false);
+
+	alloc.deallocate(a, 14);
+	TEST_ASSERT(alloc.is_full() == false);
+}

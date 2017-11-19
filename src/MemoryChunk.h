@@ -26,49 +26,37 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 #pragma once
 
 #include "MemoryCore.h"
-#include "FallbackAllocator.h"
 
 namespace memory
 {
-	/// \brief	Wraper to allocate memory when all other methods fail.
-	template <typename T>
-	class GlobalAllocator
+	class MemoryChunk
 	{
 	public:
-		using value_type = T;
-
-		template <typename U>
-		using rebind_t = GlobalAllocator<U>;
-
-		GlobalAllocator() = default;
-		template <typename U>
-		GlobalAllocator(const rebind_t<U> &) {}
-
-		static T * allocate(size_type n)
+		explicit MemoryChunk(size_type bytes)
+			: m_memory{ reinterpret_cast<unsigned char *>(global_alloc(bytes)) }
+			, m_bytes{ bytes }
+		{}
+		~MemoryChunk()
 		{
-			return reinterpret_cast<T *>(global_alloc(n * sizeof(T)));
-		}
-		static void deallocate(T * mem, size_type = 1)
-		{
-			return global_dealloc(reinterpret_cast<void *>(mem));
+			global_dealloc(m_memory);
+			m_memory = nullptr;
 		}
 
-		// assume we own all memory
-		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
-		static size_type free_size() { return ~0ul; }
+		unsigned char * get_memory(size_type offset = 0) const { return m_memory + offset; }
+		size_type get_bytes() const { return m_bytes; }
+		unsigned char * end_of_memory() const { return get_memory() + get_bytes(); }
+		bool owns(unsigned char * mem) const
+		{
+			return ptr_to_num(mem) - ptr_to_num(get_memory()) < get_bytes();
+		}
+
+	private:
+		unsigned char * m_memory{ nullptr };
+		size_type m_bytes{ 0 };
 	};
-
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
 }
 

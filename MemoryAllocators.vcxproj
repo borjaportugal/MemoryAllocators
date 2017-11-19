@@ -133,12 +133,18 @@
     <ClInclude Include="src\FallbackAllocator.h" />
     <ClInclude Include="src\GlobalAllocator.h" />
     <ClInclude Include="src\InlineAllocator.h" />
+    <ClInclude Include="src\MemoryChunk.h" />
+    <ClInclude Include="src\MemoryCore.h" />
+    <ClInclude Include="src\StackAllocator.h" />
     <ClInclude Include="testing\testing.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InlineAllocator.cpp" />
     <ClCompile Include="testing\testing.cpp" />
-    <ClCompile Include="tests\Allocators-test.cpp" />
+    <ClCompile Include="tests\FallbackAllocator-test.cpp" />
+    <ClCompile Include="tests\InlineAllocator-test.cpp" />
+    <ClCompile Include="tests\MemoryChunk-test.cpp" />
+    <ClCompile Include="tests\StackAllocator-test.cpp" />
     <ClCompile Include="tests\tests_main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

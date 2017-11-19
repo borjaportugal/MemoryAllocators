@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "MemoryCore.h"
 #include "FallbackAllocator.h"
 #include "GlobalAllocator.h"
 
@@ -92,7 +93,7 @@ namespace memory
 
 		bool is_full() const
 		{
-			return free_size() < sizeof(T);
+			return m_alloc_flags.all();
 		}
 
 		bool owns(const T * obj) const

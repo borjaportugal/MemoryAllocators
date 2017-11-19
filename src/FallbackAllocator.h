@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "GlobalAllocator.h"
+#include "MemoryCore.h"
 
 namespace memory
 {
@@ -106,11 +106,5 @@ namespace memory
 		typename Fallback::template rebind_t<T>
 	>;
 
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
-	>;
 }
 
