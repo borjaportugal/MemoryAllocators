@@ -32,17 +32,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "StackAllocator.h"
 using namespace memory;
 
-TEST_F(stack_allocator_allocates_the_requested_size)
-{
-	StackAllocator alloc{ 16 };
+// StackAllocator
 
+class StackAllocatorTest : public testing::TestCategory
+{
+public:
+	StackAllocator alloc{ 16 };
+};
+
+TEST(StackAllocatorTest, stack_allocator_allocates_the_requested_size)
+{
 	TEST_ASSERT(alloc.free_size() == 16);
 }
 
-TEST_F(stack_allocator_can_allocate_memory)
+TEST(StackAllocatorTest, stack_allocator_can_allocate_memory)
 {
-	StackAllocator alloc{ 16 };
-
 	alloc.allocate(5);
 	TEST_ASSERT(alloc.free_size() == 11);
 
@@ -50,19 +54,15 @@ TEST_F(stack_allocator_can_allocate_memory)
 	TEST_ASSERT(alloc.free_size() == 5);
 }
 
-TEST_F(stack_allocator_can_deallocate_memory)
+TEST(StackAllocatorTest, stack_allocator_can_deallocate_memory)
 {
-	StackAllocator alloc{ 16 };
-
 	auto * mem = alloc.allocate(5);
 	alloc.deallocate(mem, 5);
 	TEST_ASSERT(alloc.free_size() == 16);
 }
 
-TEST_F(stack_allocator_deallocated_memory_can_be_reused)
+TEST(StackAllocatorTest, stack_allocator_deallocated_memory_can_be_reused)
 {
-	StackAllocator alloc{ 16 };
-
 	auto * mem = alloc.allocate(5);
 	alloc.deallocate(mem, 5);
 
@@ -70,10 +70,8 @@ TEST_F(stack_allocator_deallocated_memory_can_be_reused)
 	TEST_ASSERT(mem == mem2);
 }
 
-TEST_F(stack_allocator_deallocated_memory_can_determine_if_is_full)
+TEST(StackAllocatorTest, stack_allocator_deallocated_memory_can_determine_if_is_full)
 {
-	StackAllocator alloc{ 16 };
-
 	auto * a = alloc.allocate(14);
 	TEST_ASSERT(alloc.is_full() == false);
 
@@ -86,3 +84,13 @@ TEST_F(stack_allocator_deallocated_memory_can_determine_if_is_full)
 	alloc.deallocate(a, 14);
 	TEST_ASSERT(alloc.is_full() == false);
 }
+
+TEST(StackAllocatorTest, stack_allocator_retunrs_null_when_cannot_allocated_the_requested_size)
+{
+	TEST_ASSERT(alloc.allocate(4) != nullptr);
+	TEST_ASSERT(alloc.allocate(10) != nullptr);
+	TEST_ASSERT(alloc.allocate(3) == nullptr);
+	TEST_ASSERT(alloc.allocate(2) != nullptr);
+}
+
+

@@ -32,6 +32,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if MEMORY_DEBUG_ENABLED
 
+#ifndef MEMORY_ENABLE_DEBUG_PATTERNS
+#define MEMORY_ENABLE_DEBUG_PATTERNS 1
+#endif
+
 #define MEMORY_ASSERT(x)	\
 	do						\
 	{						\
@@ -46,6 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <cstddef>	// std::size_t
+#include <cstring>	// std::memset
 
 namespace memory
 {
@@ -78,5 +83,25 @@ namespace memory
 		return reinterpret_cast<size_type>(reinterpret_cast<const size_type *>(ptr));
 	}
 
+	enum Pattern
+	{
+		ALLOCATED = 0xAA,	// returned to the user by the allocate function
+		PADDING = 0xBB,		// pad to debug memory corruptions
+		ACQUIRED = 0xCC,	// memory has been allocated by an allocator but not given to the user jet
+		DEALLOCATED = 0xDD,	// call to deallocate
+		FREE = 0xFF,		// memory that no longer belongs to allocators
+	};
+	
+#if MEMORY_ENABLE_DEBUG_PATTERNS
+
+	inline void fill_with_pattern(Pattern pattern, void * mem, size_type n)
+	{
+		std::memset(mem, static_cast<unsigned char>(pattern), n);
+	}
+	
+#else
+
+	inline void fill_with_pattern(Pattern, void *, size_type) {}
+#endif
 }
 

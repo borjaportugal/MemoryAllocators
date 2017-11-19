@@ -68,6 +68,9 @@ namespace memory
 			, Fallback{ other }
 		{}
 
+		Primary & get_primary() { return *this; }
+		Fallback & get_fallback() { return *this; }
+
 		value_type * allocate(size_type n = 1)
 		{
 			if (auto * mem = Primary::allocate(n))	return mem;

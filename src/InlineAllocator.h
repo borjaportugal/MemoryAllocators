@@ -52,6 +52,14 @@ namespace memory
 		InlineAllocatorWildcard& operator=(InlineAllocatorWildcard&&) = delete;
 	};
 
+#if DEBUG_INLINE_ALLOCATOR_ENABLED
+	namespace impl
+	{
+		template <size_type N, typename T>
+		class DebugInlineAllocator;
+	}
+#endif
+
 	/// \brief	Allocates memory for the given number of T elements.
 	///			Take first the number of elements so that we can pass just the allocator with the size and
 	///			then rebind it to any type. (i.e. InlineAllocator<15>::rebind_t<int> my_alloc;)
@@ -79,7 +87,7 @@ namespace memory
 			if (idx < object_num)
 			{
 				set_flags(idx, n, true);
-				return reinterpret_cast<T *>(m_memory + idx * sizeof(T));
+				return reinterpret_cast<T *>(m_memory + idx * object_size);
 			}
 
 			return nullptr;
@@ -111,7 +119,7 @@ namespace memory
 			const auto free_objects = N - m_alloc_flags.count();
 			return free_objects * object_size;
 		}
-
+		
 	private:
 		void set_flags(size_type idx, size_type n, bool flag)
 		{
@@ -153,6 +161,8 @@ namespace memory
 			const auto start = ptr_to_num(m_memory);
 			return (ptr_val - start) / object_size;
 		}
+
+		friend class impl::DebugInlineAllocator<N, T>;
 
 		// STUDY(Borja): store int containing the number of free objects?
 
@@ -242,16 +252,21 @@ namespace memory
 				, m_initial_non_inline_allocs{ stats.non_inline_allocs }
 			{
 				m_stats->use_num++;
+				fill_with_pattern(Pattern::ACQUIRED, get_primary().m_memory, total_size);
 			}
 			template <typename U>
 			DebugInlineAllocator(const DebugInlineAllocator<N, U> & other)
 				: m_stats{ other.m_stats }
-			{}
+			{
+				fill_with_pattern(Pattern::ACQUIRED, get_primary().m_memory, total_size);
+			}
 			~DebugInlineAllocator()
 			{
 				// if there was any allocation we couldn't track, track it
 				if (m_initial_non_inline_allocs != m_stats->non_inline_allocs)
 					m_stats->uses_implying_non_inline_allocs++;
+
+				fill_with_pattern(Pattern::FREE, get_primary().m_memory, total_size);
 			}
 
 			T * allocate(size_type n = 1) override final
@@ -259,7 +274,16 @@ namespace memory
 				m_stats->allocation_num++;
 				m_stats->total_alloc_objects += n;
 				if (Base::primary::free_size() < n * sizeof(T)) m_stats->non_inline_allocs++;
-				return Base::allocate(n);
+
+				auto * result = Base::allocate(n);
+				fill_with_pattern(Pattern::ALLOCATED, result, n * object_size);
+				return result;
+			}
+
+			void deallocate(T * ptr, size_type n = 1)
+			{
+				fill_with_pattern(Pattern::DEALLOCATED, ptr, n * object_size);
+				Base::deallocate(ptr, n);
 			}
 
 		private:

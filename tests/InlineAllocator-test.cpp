@@ -149,9 +149,16 @@ TEST_F(inline_allocator_provides_an_interface_to_rebind_the_type)
 // DebugInlineAllocator
 
 #if DEBUG_INLINE_ALLOCATOR_ENABLED
-TEST_F(can_generate_debug_statistics_of_inline_allocators)
+
+class DebugInlineAllocatorTest : public testing::TestCategory
 {
+public:
 	DebugInlineAllocatorStats stats{ __FILE__, __LINE__, "int", sizeof(int), 8 };
+};
+
+TEST(DebugInlineAllocatorTest, can_generate_debug_statistics_of_inline_allocators)
+{
+	
 
 	// simulate one call to the function where the inline allocator is defined
 	{
@@ -172,10 +179,8 @@ TEST_F(can_generate_debug_statistics_of_inline_allocators)
 	TEST_ASSERT(stats.non_inline_allocs == 2);
 	TEST_ASSERT(stats.total_alloc_objects == 23);
 }
-TEST_F(inline_allocator_debug_statistics_contain_information_about_multiple_runs)
+TEST(DebugInlineAllocatorTest, inline_allocator_debug_statistics_contain_information_about_multiple_runs)
 {
-	DebugInlineAllocatorStats stats{ __FILE__, __LINE__, "int", sizeof(int), 8 };
-
 	// simulate one call to the function where the inline allocator is defined
 	{
 		memory::impl::DebugInlineAllocator<4, int> alloc{ stats };
@@ -216,21 +221,50 @@ TEST_F(inline_allocator_debug_statistics_contain_information_about_multiple_runs
 	TEST_ASSERT(stats.use_num == 3);
 	TEST_ASSERT(stats.uses_implying_non_inline_allocs == 2);
 }
+
+TEST(DebugInlineAllocatorTest, debug_inline_allocator_sets_memory_patterns)
+{
+	unsigned char * allocated_raw = nullptr;
+	unsigned char * free_raw = nullptr;
+
+	constexpr size_type inlined_object_num = 4;
+
+	{
+		impl::DebugInlineAllocator<4, int> alloc{ stats };
+
+		int * a = alloc.allocate(2);
+
+		allocated_raw = reinterpret_cast<unsigned char *>(a);
+		free_raw = allocated_raw + sizeof(int) * 2;
+
+		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+			TEST_ASSERT(allocated_raw[i] == Pattern::ALLOCATED);
+		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+			TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+
+		alloc.deallocate(a, 2);
+
+		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+			TEST_ASSERT(allocated_raw[i] == Pattern::DEALLOCATED);
+		for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+			TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+	}
+
+	for (unsigned i = 0; i < sizeof(int) * inlined_object_num; ++i)
+		TEST_ASSERT(allocated_raw[i] == Pattern::FREE);
+	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
+		TEST_ASSERT(free_raw[i] == Pattern::FREE);
+}
+
 #endif
 
-TEST_F(debug_inline_allocator_can_be_delclared_using_a_macro)
-{
 #if DEBUG_INLINE_ALLOCATOR_ENABLED
 
+TEST_F(debug_inline_allocator_can_be_delclared_using_a_macro_to_encapsulate_stats_creation)
+{
 	DEBUG_INLINE_ALLOCATOR(4, int, alloc, debug_alloc_type);
 	const bool same = std::is_same<debug_alloc_type, impl::DebugInlineAllocator<4, int>>::value;
 	TEST_ASSERT(same);
-
-#else
-
-	DEBUG_INLINE_ALLOCATOR(4, int, alloc, debug_alloc_type);
-	const bool same = std::is_same<debug_alloc_type, InlineAllocator<4, int>>::value;
-	TEST_ASSERT(same);
+}
 
 #endif
-}

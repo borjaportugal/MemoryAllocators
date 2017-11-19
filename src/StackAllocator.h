@@ -42,17 +42,20 @@ namespace memory
 	public:
 		explicit StackAllocator(size_type bytes)
 			: m_memory_chunk{ bytes }
-			, m_top { m_memory_chunk.get_memory() }
+			, m_top{ m_memory_chunk.get_memory() }
 		{}
+		virtual ~StackAllocator() = default;
 
-		unsigned char * allocate(size_type bytes)
+		virtual unsigned char * allocate(size_type bytes)
 		{
+			if (bytes > free_size())	return nullptr;
+
 			auto * result = m_top;
 			m_top += bytes;
 			return result;
 		}
 
-		void deallocate(unsigned char * mem, size_type bytes)
+		virtual void deallocate(unsigned char * mem, size_type bytes)
 		{
 			MEMORY_ASSERT(mem == m_top - bytes);
 			m_top = mem;
@@ -73,12 +76,15 @@ namespace memory
 			return m_memory_chunk.owns(mem);
 		}
 
-	private:
+	protected:
+		size_type get_offset_from_base(unsigned char * ptr)
+		{
+			return ptr_to_num(ptr) - ptr_to_num(m_memory_chunk.get_memory());
+		}
+
 		// IMPORTANT(Borja): don't change the order of these two variables, construction order matters
 		MemoryChunk m_memory_chunk;
 		unsigned char * m_top{ nullptr };
 	};
-
-
 }
 
