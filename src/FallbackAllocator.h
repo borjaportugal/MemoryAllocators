@@ -79,7 +79,8 @@ namespace memory
 
 		void deallocate(value_type * mem, size_type n = 1)
 		{
-			if (Primary::owns(mem))	Primary::deallocate(mem, n);
+			if (Primary::owns(mem))	
+				Primary::deallocate(mem, n);
 			else
 			{
 				MEMORY_ASSERT(Fallback::owns(mem));

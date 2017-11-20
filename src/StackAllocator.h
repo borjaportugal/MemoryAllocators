@@ -42,7 +42,7 @@ namespace memory
 	public:
 		explicit StackAllocator(size_type bytes)
 			: m_memory_chunk{ bytes }
-			, m_top{ m_memory_chunk.get_memory() }
+			, m_top{ m_memory_chunk.memory() }
 		{}
 		virtual ~StackAllocator() = default;
 
@@ -79,7 +79,7 @@ namespace memory
 	protected:
 		size_type get_offset_from_base(unsigned char * ptr)
 		{
-			return ptr_to_num(ptr) - ptr_to_num(m_memory_chunk.get_memory());
+			return ptr_to_num(ptr) - ptr_to_num(m_memory_chunk.memory());
 		}
 
 		// IMPORTANT(Borja): don't change the order of these two variables, construction order matters
@@ -130,11 +130,11 @@ namespace memory
 		explicit DebugStackAllocator(size_type bytes)
 			: Base{ bytes }
 		{
-			fill_with_pattern(Pattern::ACQUIRED, m_memory_chunk.get_memory(), m_memory_chunk.get_bytes());
+			fill_with_pattern(DebugPattern::ACQUIRED, m_memory_chunk.memory(), m_memory_chunk.bytes());
 		}
 		~DebugStackAllocator()
 		{
-			fill_with_pattern(Pattern::RELEASED, m_memory_chunk.get_memory(), m_memory_chunk.get_bytes());
+			fill_with_pattern(DebugPattern::RELEASED, m_memory_chunk.memory(), m_memory_chunk.bytes());
 		}
 
 		unsigned char * allocate(size_type bytes) override
@@ -143,7 +143,7 @@ namespace memory
 			{
 				m_stats.allocations++;
 				m_stats.per_allocation_stats.emplace_back(bytes, get_offset_from_base(m_top) - bytes);
-				fill_with_pattern(Pattern::ALLOCATED, allocated, bytes);
+				fill_with_pattern(DebugPattern::ALLOCATED, allocated, bytes);
 				return allocated;
 			}
 
@@ -154,7 +154,7 @@ namespace memory
 		void deallocate(unsigned char * mem, size_type bytes) override
 		{
 			m_stats.deallocations++;
-			fill_with_pattern(Pattern::DEALLOCATED, mem, bytes);
+			fill_with_pattern(DebugPattern::DEALLOCATED, mem, bytes);
 			Base::deallocate(mem, bytes);
 		}
 

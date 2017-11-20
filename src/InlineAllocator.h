@@ -66,6 +66,10 @@ namespace memory
 	template <size_type N, typename T = InlineAllocatorWildcard>
 	class InlineAllocator
 	{
+#if DEBUG_INLINE_ALLOCATOR_ENABLED
+		friend class impl::DebugInlineAllocator<N, T>;
+#endif
+
 	public:
 		template <typename U>
 		using rebind_t = InlineAllocator<N, U>;
@@ -162,8 +166,6 @@ namespace memory
 			return (ptr_val - start) / object_size;
 		}
 
-		friend class impl::DebugInlineAllocator<N, T>;
-
 		// STUDY(Borja): store int containing the number of free objects?
 
 		std::bitset<N> m_alloc_flags;
@@ -252,13 +254,13 @@ namespace memory
 				, m_initial_non_inline_allocs{ stats.non_inline_allocs }
 			{
 				m_stats->use_num++;
-				fill_with_pattern(Pattern::ACQUIRED, get_primary().m_memory, total_size);
+				fill_with_pattern(DebugPattern::ACQUIRED, get_primary().m_memory, total_size);
 			}
 			template <typename U>
 			DebugInlineAllocator(const DebugInlineAllocator<N, U> & other)
 				: m_stats{ other.m_stats }
 			{
-				fill_with_pattern(Pattern::ACQUIRED, get_primary().m_memory, total_size);
+				fill_with_pattern(DebugPattern::ACQUIRED, get_primary().m_memory, total_size);
 			}
 			~DebugInlineAllocator()
 			{
@@ -266,7 +268,7 @@ namespace memory
 				if (m_initial_non_inline_allocs != m_stats->non_inline_allocs)
 					m_stats->uses_implying_non_inline_allocs++;
 
-				fill_with_pattern(Pattern::RELEASED, get_primary().m_memory, total_size);
+				fill_with_pattern(DebugPattern::RELEASED, get_primary().m_memory, total_size);
 			}
 
 			T * allocate(size_type n = 1) override final
@@ -276,13 +278,13 @@ namespace memory
 				if (Base::primary::free_size() < n * sizeof(T)) m_stats->non_inline_allocs++;
 
 				auto * result = Base::allocate(n);
-				fill_with_pattern(Pattern::ALLOCATED, result, n * object_size);
+				fill_with_pattern(DebugPattern::ALLOCATED, result, n * object_size);
 				return result;
 			}
 
 			void deallocate(T * ptr, size_type n = 1)
 			{
-				fill_with_pattern(Pattern::DEALLOCATED, ptr, n * object_size);
+				fill_with_pattern(DebugPattern::DEALLOCATED, ptr, n * object_size);
 				Base::deallocate(ptr, n);
 			}
 

@@ -46,12 +46,12 @@ namespace memory
 			m_memory = nullptr;
 		}
 
-		unsigned char * get_memory(size_type offset = 0) const { return m_memory + offset; }
-		size_type get_bytes() const { return m_bytes; }
-		unsigned char * end_of_memory() const { return get_memory() + get_bytes(); }
+		unsigned char * memory() const { return m_memory; }
+		size_type bytes() const { return m_bytes; }
+		unsigned char * end_of_memory() const { return memory() + bytes(); }
 		bool owns(unsigned char * mem) const
 		{
-			return ptr_to_num(mem) - ptr_to_num(get_memory()) < get_bytes();
+			return ptr_to_num(mem) - ptr_to_num(memory()) < bytes();
 		}
 
 	private:

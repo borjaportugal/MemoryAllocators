@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if MEMORY_DEBUG_ENABLED
 
-#ifndef MEMORY_ENABLE_DEBUG_PATTERNS
+#if !defined(MEMORY_ENABLE_DEBUG_PATTERNS) 
 #define MEMORY_ENABLE_DEBUG_PATTERNS 1
 #endif
 
@@ -67,13 +67,13 @@ namespace memory
 		::operator delete(mem);
 	}
 
-	inline size_type kilo_to_byte(size_type kb)
+	inline size_type kilobyte_to_byte(size_type kb)
 	{
 		return kb * 1024;
 	}
-	inline size_type mega_to_byte(size_type mb)
+	inline size_type megabyte_to_byte(size_type mb)
 	{
-		return kilo_to_byte(mb * 1024);
+		return kilobyte_to_byte(mb * 1024);
 	}
 
 	/// \brief hHelper function to convert an address to a numerical value.
@@ -83,7 +83,7 @@ namespace memory
 		return reinterpret_cast<size_type>(reinterpret_cast<const size_type *>(ptr));
 	}
 
-	enum Pattern
+	enum DebugPattern
 	{
 		ALLOCATED = 0xAA,	// returned to the user by the allocate function
 		PADDING = 0xBB,		// pad to debug memory corruptions
@@ -94,14 +94,14 @@ namespace memory
 	
 #if MEMORY_ENABLE_DEBUG_PATTERNS
 
-	inline void fill_with_pattern(Pattern pattern, void * mem, size_type n)
+	inline void fill_with_pattern(DebugPattern pattern, void * mem, size_type n)
 	{
 		std::memset(mem, static_cast<unsigned char>(pattern), n);
 	}
 	
 #else
 
-	inline void fill_with_pattern(Pattern, void *, size_type) {}
+	inline void fill_with_pattern(DebugPattern, void *, size_type) {}
 #endif
 }
 

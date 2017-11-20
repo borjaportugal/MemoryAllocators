@@ -237,16 +237,16 @@ TEST(DebugInlineAllocatorTest, debug_inline_allocator_sets_memory_patterns)
 	free_raw = allocated_raw + sizeof(int) * 2;
 
 	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-		TEST_ASSERT(allocated_raw[i] == Pattern::ALLOCATED);
+		TEST_ASSERT(allocated_raw[i] == DebugPattern::ALLOCATED);
 	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+		TEST_ASSERT(free_raw[i] == DebugPattern::ACQUIRED);
 
 	alloc.deallocate(a, 2);
 
 	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-		TEST_ASSERT(allocated_raw[i] == Pattern::DEALLOCATED);
+		TEST_ASSERT(allocated_raw[i] == DebugPattern::DEALLOCATED);
 	for (unsigned i = 0; i < sizeof(int) * 2; ++i)
-		TEST_ASSERT(free_raw[i] == Pattern::ACQUIRED);
+		TEST_ASSERT(free_raw[i] == DebugPattern::ACQUIRED);
 }
 
 #endif
