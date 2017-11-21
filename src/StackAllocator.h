@@ -38,49 +38,26 @@ namespace memory
 	///			allocated memory. Deallocations need to occur in reverse order to allocations.
 	class StackAllocator
 	{
-		// NOTE(Borja): Implementation inside the .h to let the compiler inline if he thinks its a good idea :D
 	public:
-		explicit StackAllocator(size_type bytes)
-			: m_memory_chunk{ bytes }
-			, m_top{ m_memory_chunk.memory() }
-		{}
+		explicit StackAllocator(size_type bytes);
 		virtual ~StackAllocator() = default;
 
-		virtual unsigned char * allocate(size_type bytes)
-		{
-			if (bytes > free_size())	return nullptr;
-
-			auto * result = m_top;
-			m_top += bytes;
-			return result;
-		}
-
+		virtual unsigned char * allocate(size_type bytes);
 		virtual void deallocate(unsigned char * mem, size_type bytes)
 		{
 			MEMORY_ASSERT(mem == m_top - bytes);
 			m_top = mem;
 		}
 
-		bool is_full() const
-		{
-			return free_size() == 0;
-		}
-
+		bool is_full() const { return free_size() == 0; }
+		size_type owns(unsigned char * mem) const { return m_memory_chunk.owns(mem); }
 		size_type free_size() const
 		{
 			return ptr_to_num(m_memory_chunk.end_of_memory()) - ptr_to_num(m_top);
 		}
 
-		size_type owns(unsigned char * mem) const
-		{
-			return m_memory_chunk.owns(mem);
-		}
-
 	protected:
-		size_type get_offset_from_base(unsigned char * ptr)
-		{
-			return ptr_to_num(ptr) - ptr_to_num(m_memory_chunk.memory());
-		}
+		size_type get_offset_from_base(unsigned char * ptr);
 
 		// IMPORTANT(Borja): don't change the order of these two variables, construction order matters
 		MemoryChunk m_memory_chunk;
@@ -127,41 +104,13 @@ namespace memory
 		};
 
 	public:
-		explicit DebugStackAllocator(size_type bytes)
-			: Base{ bytes }
-		{
-			fill_with_pattern(DebugPattern::ACQUIRED, m_memory_chunk.memory(), m_memory_chunk.bytes());
-		}
-		~DebugStackAllocator()
-		{
-			fill_with_pattern(DebugPattern::RELEASED, m_memory_chunk.memory(), m_memory_chunk.bytes());
-		}
+		explicit DebugStackAllocator(size_type bytes);
+		~DebugStackAllocator();
 
-		unsigned char * allocate(size_type bytes) override
-		{
-			if (auto * allocated = Base::allocate(bytes))
-			{
-				m_stats.allocations++;
-				m_stats.per_allocation_stats.emplace_back(bytes, get_offset_from_base(m_top) - bytes);
-				fill_with_pattern(DebugPattern::ALLOCATED, allocated, bytes);
-				return allocated;
-			}
+		unsigned char * allocate(size_type bytes) override;
+		void deallocate(unsigned char * mem, size_type bytes) override;
 
-			m_stats.failures++;
-			return nullptr;
-		}
-
-		void deallocate(unsigned char * mem, size_type bytes) override
-		{
-			m_stats.deallocations++;
-			fill_with_pattern(DebugPattern::DEALLOCATED, mem, bytes);
-			Base::deallocate(mem, bytes);
-		}
-
-		const Stats & get_stats() const
-		{
-			return m_stats;
-		}
+		const Stats & get_stats() const { return m_stats; }
 
 	private:
 		Stats m_stats;

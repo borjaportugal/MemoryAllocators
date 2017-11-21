@@ -28,13 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+// TODO(Borja): When integrating this code in an actual project, this should go in the project configuration.
 #define MEMORY_DEBUG_ENABLED 1
+#define MEMORY_ENABLE_DEBUG_PATTERNS 1
 
 #if MEMORY_DEBUG_ENABLED
-
-#if !defined(MEMORY_ENABLE_DEBUG_PATTERNS) 
-#define MEMORY_ENABLE_DEBUG_PATTERNS 1
-#endif
 
 #define MEMORY_ASSERT(x)	\
 	do						\
@@ -45,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #else
 
-#define MEMORY_ASSERT(x) do{} while(0)
+#define MEMORY_ASSERT(x) do{ (void)sizeof(x); } while(0)
 
 #endif
 
@@ -91,7 +89,7 @@ namespace memory
 		DEALLOCATED = 0xDD,	// call to deallocate
 		RELEASED = 0xFF,	// memory that no longer belongs to allocators (could be freed memory or stack memory)
 	};
-	
+
 #if MEMORY_ENABLE_DEBUG_PATTERNS
 
 	inline void fill_with_pattern(DebugPattern pattern, void * mem, size_type n)
