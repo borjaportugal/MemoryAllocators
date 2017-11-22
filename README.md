@@ -1,14 +1,15 @@
+(Project still in development)
+
 # MemoryAllocators
-Implementation of multiple memory allocators, debug functionality and support for the stl containers.
-Some of the allocators allocate raw memory while others are thought to allocate specific object types.
-(Still in development)
+This is a simple exercie I wanted to make to play around with different allocator implementations as well as debug functionality for  them.
+The allocators are varied, some of them allocate raw memory while others are implemented to allocate space for specific object types and have the type of the object embededded in their own type.
 
 ## Implemented allocators
 ### GlobalAllocator<T>
 Raw allocator used when all other allocators fail allocating memory. 
 Requests memory to the OS but it could use any other method to manage the memory (like a global Arena that contains all the available memory).
 
-#### DebugGlobalAllocator<T>
+### DebugGlobalAllocator<T>
 Fills the memory with debug patterns for debug purposes, to detect faster bad pointer accesses.
 
 
@@ -16,10 +17,10 @@ Fills the memory with debug patterns for debug purposes, to detect faster bad po
 Allocator meant to be created in the stack, it will allocate enough contiguous memory to hold N objects of type T.
 Once all the objects have been allocated will fail to allocate more.
 
-#### DefaultInlineAllocator<N, T>
+### DefaultInlineAllocator<N, T>
 This is a very convenient alias for an InlineAllocator that will use the GlobalAllocator to allocate memory in case no more inlined memory is available.
 
-#### DebugInlineAllocator<N, T>
+### DebugInlineAllocator<N, T>
 Extends the funtionality of the DefaultInlineAllocator and generates some statistics of the allocations done. 
 Inline allocators are a very usefull tool to optimize code that may need from some dynamic memory, one of the biggest problems with them is the number of objects we inline. We don't want to allocate too many objects but at the same time we want to avoid as much dynamic allocations as we can. The statistics that this allocator generates are meant to see how many allocations fall into the inlined memory and how many need from dynamic memory.
 
@@ -28,7 +29,7 @@ Inline allocators are a very usefull tool to optimize code that may need from so
 Allocates the requested number of bytes as contiguous memory and then retrieves memory to the user by moving a pointer back and forth.
 Deallocations need to happen in the exact oposite order to allocations.
 
-#### DebugStackAllocator
+### DebugStackAllocator
 Fills the memory with debug patterns and generates statistics of the allocations.
 
 
