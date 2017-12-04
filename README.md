@@ -1,5 +1,7 @@
 (Project still in development)
 
+This project is licensed under the terms of the [MIT license](./LICENSE.md).
+
 # MemoryAllocators
 This is a simple exercie I wanted to make to play around with different allocator implementations as well as debug functionality for  them.
 The allocators are varied, some of them allocate raw memory while others are implemented to allocate space for specific object types and have the type of the object embededded in their own type.
