@@ -135,15 +135,19 @@
     <ClInclude Include="src\InlineAllocator.h" />
     <ClInclude Include="src\MemoryChunk.h" />
     <ClInclude Include="src\MemoryCore.h" />
+    <ClInclude Include="src\PageAllocator.h" />
     <ClInclude Include="src\StackAllocator.h" />
     <ClInclude Include="testing\testing.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\InlineAllocator.cpp" />
+    <ClCompile Include="src\PageAllocator.cpp" />
+    <ClCompile Include="src\StackAllocator.cpp" />
     <ClCompile Include="testing\testing.cpp" />
     <ClCompile Include="tests\FallbackAllocator-test.cpp" />
     <ClCompile Include="tests\InlineAllocator-test.cpp" />
     <ClCompile Include="tests\MemoryChunk-test.cpp" />
+    <ClCompile Include="tests\PageAllocator-test.cpp" />
     <ClCompile Include="tests\StackAllocator-test.cpp" />
     <ClCompile Include="tests\tests_main.cpp" />
   </ItemGroup>
