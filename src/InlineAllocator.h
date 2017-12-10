@@ -64,6 +64,7 @@ namespace memory
 		InlineAllocator(InlineAllocator &&) = default;
 		template <typename U>
 		InlineAllocator(const rebind_t<U> &) {}
+		virtual ~InlineAllocator() = default;
 
 		virtual T * allocate(size_type n = 1)
 		{

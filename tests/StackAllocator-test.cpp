@@ -113,16 +113,19 @@ TEST_F(debug_stack_allocator_fills_the_memory_with_patternss)
 	unsigned char * allocated_raw = reinterpret_cast<unsigned char *>(a);
 	unsigned char * free_raw = allocated_raw + allocated_bytes;
 
-	for (unsigned i = 0; i < allocated_bytes; ++i)
-		TEST_ASSERT(allocated_raw[i] == DebugPattern::ALLOCATED);
-	for (unsigned i = 0; i < free_bytes; ++i)
-		TEST_ASSERT(free_raw[i] == DebugPattern::ACQUIRED);
+	TEST_ASSERT_ALL(allocated_raw, allocated_raw + allocated_bytes,
+					== DebugPattern::ALLOCATED);
+
+	TEST_ASSERT_ALL(free_raw, free_raw + free_bytes,
+					== DebugPattern::ACQUIRED);
 
 	alloc.deallocate(a, allocated_bytes);
-	for (unsigned i = 0; i < allocated_bytes; ++i)
-		TEST_ASSERT(allocated_raw[i] == DebugPattern::DEALLOCATED);
-	for (unsigned i = 0; i < free_bytes; ++i)
-		TEST_ASSERT(free_raw[i] == DebugPattern::ACQUIRED);
+
+	TEST_ASSERT_ALL(allocated_raw, allocated_raw + allocated_bytes,
+					== DebugPattern::DEALLOCATED);
+
+	TEST_ASSERT_ALL(free_raw, free_raw + free_bytes,
+					== DebugPattern::ACQUIRED);
 }
 
 #endif

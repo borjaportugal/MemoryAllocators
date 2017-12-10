@@ -77,4 +77,26 @@ TEST_F(page_allocator_returns_objects_at_the_correct_offsets)
 }
 
 
+#if MEMORY_DEBUG_ENABLED
+
+TEST_F(debug_page_allocator_fills_memory_with_paterns)
+{
+	constexpr size_type object_size = sizeof(char) * 16;
+	unsigned char * mem0 = nullptr;
+	unsigned char * mem1 = nullptr;
+
+	DebugPageAllocator alloc{ object_size, 3 };
+	mem0 = reinterpret_cast<unsigned char *>(alloc.allocate());
+	mem1 = reinterpret_cast<unsigned char *>(alloc.allocate());
+
+	TEST_ASSERT_ALL(mem0, mem0 + object_size, == DebugPattern::ALLOCATED);
+	TEST_ASSERT_ALL(mem1, mem1 + object_size, == DebugPattern::ALLOCATED);
+	alloc.deallocate(mem0);
+
+	TEST_ASSERT_ALL(mem0 + sizeof(void*), mem0 + object_size, == DebugPattern::DEALLOCATED);
+	TEST_ASSERT_ALL(mem1, mem1 + object_size, == DebugPattern::ALLOCATED);
+}
+
+#endif
+
 

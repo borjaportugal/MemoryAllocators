@@ -12,6 +12,7 @@ found in the top-level directory of this distribution.
 
 namespace memory
 {
+	/// \brief	Stores chunks of memory as a linked list by using part of the memory of them.
 	class FreeList
 	{
 		constexpr static size_type MIN_SIZE = sizeof(void*);
@@ -30,33 +31,42 @@ namespace memory
 
 	};
 
+	/// \brief	Allocates a chunk of memory big enough to hold N objects of size S.
+	///			Can only retrieve one object when the user calls to allocate. 
+	///			(i.e. Cannot be used to allocate arrays)
 	class PageAllocator
 	{
-		// signatures to link the memory
+	protected:
 		/// \brief	One chunk of memory containing multiple Objects (to allocate)
 		struct Page { Page * m_next; };
-
-		Page * as_page(void * p) { return reinterpret_cast<Page *>(p); }
-
+		
 	public:
 		PageAllocator(size_type obj_size, 
 					  size_type obj_num,
 					  bool allocate_page = true);
-		~PageAllocator();
+		virtual ~PageAllocator();
 		
-		void * allocate();
-		void deallocate(void * mem);
+		virtual void * allocate();
+		virtual void deallocate(void * mem);
 
 		size_type get_page_size() const;
 		size_type allocated_pages() const;
 
+		size_type get_obj_size() const { return m_object_size; }
+
+	protected:
+		/// \brief	Allocates memory for the page.
+		virtual Page * do_page_alloc();
+		/// \brief	Deallocates the memory of the page.
+		virtual void do_page_dealloc(Page * page);
+		void deallocate_all_pages();
+
 	private:
+		Page * as_page(void * p) { return reinterpret_cast<Page *>(p); }
 		void * offset_to_memory(Page * page);
 
-		Page * do_page_alloc();
-		void do_page_dealloc(Page * page);
+		/// \brief	Allocates a new page and links it.
 		void allocate_page();
-		void deallocate_all_pages();
 
 	private:
 		Page * m_pages{ nullptr };
@@ -66,7 +76,30 @@ namespace memory
 		size_type m_object_size{ 0 };
 	};
 
+#if MEMORY_DEBUG_ENABLED
 
+	/// \brief	Writes patters in the memory.
+	class DebugPageAllocator
+		: public PageAllocator
+	{
+		using Base = PageAllocator;
+
+	public:
+		DebugPageAllocator(size_type obj_size,
+						   size_type obj_num,
+						   bool allocate_page = true);
+		~DebugPageAllocator();
+
+		void * allocate() override;
+		void deallocate(void * ptr) override;
+
+	private:
+		Page * do_page_alloc();
+		void do_page_dealloc(Page * page);
+
+	};
+
+#endif
 
 }
 

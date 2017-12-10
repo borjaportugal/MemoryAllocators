@@ -80,23 +80,19 @@ namespace memory
 		static size_type free_size() { return ~0ul; }
 	};
 
-	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
-	template <typename ALLOC>
-	using GlobalAsFallback = FallbackAllocator<
-		ALLOC,
-		DebugGlobalAllocator<typename ALLOC::value_type>
-	>;
-
+	template <typename T>
+	using DefaultGlobalAllocator = DebugGlobalAllocator<T>;
 #else
+	template <typename T>
+	using DefaultGlobalAllocator = GlobalAllocator<T>;
+#endif
 
 	/// \brief	Expressive way to declare an allocator that has the GlobalAllocator as fallback allocator.
 	template <typename ALLOC>
 	using GlobalAsFallback = FallbackAllocator<
 		ALLOC,
-		GlobalAllocator<typename ALLOC::value_type>
+		DefaultGlobalAllocator<typename ALLOC::value_type>
 	>;
-
-#endif
 
 }
 

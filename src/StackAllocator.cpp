@@ -37,6 +37,8 @@ namespace memory
 	}
 	DebugStackAllocator::~DebugStackAllocator()
 	{
+		// if we call delete on the memory of the page, the runtime library may put its own
+		// pattern, just in case it does not (i.e. release build)
 		fill_with_pattern(DebugPattern::RELEASED, m_memory_chunk.memory(), m_memory_chunk.bytes());
 	}
 

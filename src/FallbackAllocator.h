@@ -47,6 +47,7 @@ namespace memory
 			: Primary{ other }
 			, Fallback{ other }
 		{}
+		virtual ~FallbackAllocator() = default;
 
 		Primary & get_primary() { return *this; }
 		Fallback & get_fallback() { return *this; }

@@ -3,7 +3,7 @@
 
 namespace memory
 {
-	void * FreeList::extract()
+	inline void * FreeList::extract()
 	{
 		auto * curr = m_head;
 		m_head = m_head->m_next;
@@ -32,7 +32,7 @@ namespace memory
 			raw += object_size;
 		}
 	}
-	bool FreeList::empty() const
+	inline bool FreeList::empty() const
 	{
 		return m_head == nullptr;
 	}
@@ -54,11 +54,11 @@ namespace memory
 
 	inline void * PageAllocator::offset_to_memory(Page * page)
 	{
-		return page + 1;
+		return reinterpret_cast<void *>(page + 1);
 	}
 	inline size_type PageAllocator::get_page_size() const
 	{
-		return m_object_num * m_object_num + sizeof(Page*);
+		return m_object_num * m_object_size + sizeof(Page*);
 	}
 
 	PageAllocator::Page * PageAllocator::do_page_alloc()
@@ -111,5 +111,43 @@ namespace memory
 
 		return page_num;
 	}
+
+#if MEMORY_DEBUG_ENABLED
+
+	DebugPageAllocator::DebugPageAllocator(size_type obj_size,
+					   size_type obj_num,
+					   bool allocate_page)
+		: Base{ obj_size, obj_num, allocate_page }
+	{}
+	DebugPageAllocator::~DebugPageAllocator()
+	{
+		deallocate_all_pages();
+	}
+	void * DebugPageAllocator::allocate()
+	{
+		auto * mem = Base::allocate();
+		fill_with_pattern(DebugPattern::ALLOCATED, mem, get_obj_size());
+		return mem;
+	}
+	void DebugPageAllocator::deallocate(void * ptr)
+	{
+		fill_with_pattern(DebugPattern::DEALLOCATED, ptr, get_obj_size());
+		Base::deallocate(ptr);
+	}
+
+	DebugPageAllocator::Page * DebugPageAllocator::do_page_alloc()
+	{
+		auto * page = Base::do_page_alloc();
+		fill_with_pattern(DebugPattern::ACQUIRED, page, get_page_size());
+		return page;
+	}
+	void DebugPageAllocator::do_page_dealloc(Page * page)
+	{
+		// if we call delete on the memory of the page, the runtime library may put its own
+		// pattern, just in case it does not (i.e. release build)
+		fill_with_pattern(DebugPattern::RELEASED, page, get_page_size());
+		Base::do_page_dealloc(page);
+	}
+#endif
 }
 

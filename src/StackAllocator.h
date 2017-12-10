@@ -14,8 +14,9 @@ found in the top-level directory of this distribution.
 
 namespace memory
 {
-	/// \brief	The StackAllocator just moves a pointer to determine the begginign and ending of 
-	///			allocated memory. Deallocations need to occur in reverse order to allocations.
+	/// \brief	The StackAllocator just moves a pointer to determine the begginign 
+	///			and ending of allocated memory. 
+	///			Deallocations need to occur in exact reverse order to allocations.
 	class StackAllocator
 	{
 	public:
@@ -44,8 +45,6 @@ namespace memory
 		unsigned char * m_top{ nullptr };
 	};
 }
-
-
 
 #if MEMORY_DEBUG_ENABLED
 
@@ -99,6 +98,13 @@ namespace memory
 	};
 }
 
-
-
 #endif
+
+namespace memory
+{
+#if MEMORY_DEBUG_ENABLED
+	using DefaultStackAllocator = DebugStackAllocator;
+#else
+	using DefaultStackAllocator = StackAllocator;
+#endif
+}

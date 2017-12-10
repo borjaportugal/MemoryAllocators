@@ -12,6 +12,7 @@ found in the top-level directory of this distribution.
 #include <string>
 #include <vector>
 #include <ostream>
+#include <algorithm>	// std::all_of
 
 namespace testing
 {
@@ -211,6 +212,8 @@ namespace testing { namespace impl {														\
 
 ///	\brief	Test fails inmediately.
 #define TEST_FAILED() TEST_ASSERT(false)
+
+#define TEST_ASSERT_ALL(b, e, comp) TEST_ASSERT(std::all_of(b, e, [](auto v){ return v comp; }))
 
 ///	\brief	Placeholder macro to mark paths that the execution should follow in order to make the test pass,
 ///	lets the test continue executing.
