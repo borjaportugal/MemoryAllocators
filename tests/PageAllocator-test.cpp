@@ -97,6 +97,35 @@ TEST_F(debug_page_allocator_fills_memory_with_paterns)
 	TEST_ASSERT_ALL(mem1, mem1 + object_size, == DebugPattern::ALLOCATED);
 }
 
+TEST_F(debug_page_allocator_collects_stats_about_the_allocations)
+{
+	DebugPageAllocator alloc{ sizeof(int), 3, false };
+	auto stats = alloc.get_stats();
+	TEST_ASSERT(stats.allocated_objects == 0);
+	TEST_ASSERT(stats.allocated_pages == 0);
+	TEST_ASSERT(stats.free_objects == 0);
+
+	alloc.allocate();
+	stats = alloc.get_stats();
+	TEST_ASSERT(stats.allocated_objects == 1);
+	TEST_ASSERT(stats.allocated_pages == 1);
+	TEST_ASSERT(stats.free_objects == 2);
+
+	alloc.allocate();
+	alloc.allocate();
+	stats = alloc.get_stats();
+	TEST_ASSERT(stats.allocated_objects == 3);
+	TEST_ASSERT(stats.allocated_pages == 1);
+	TEST_ASSERT(stats.free_objects == 0);
+
+	alloc.deallocate(alloc.allocate());
+	stats = alloc.get_stats();
+	TEST_ASSERT(stats.allocated_objects == 3);
+	TEST_ASSERT(stats.allocated_pages == 2);
+	TEST_ASSERT(stats.free_objects == 3);
+}
+
+
 #endif
 
 

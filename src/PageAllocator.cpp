@@ -3,38 +3,70 @@
 
 namespace memory
 {
-	inline void * FreeList::extract()
+	namespace impl
 	{
-		auto * curr = m_head;
-		m_head = m_head->m_next;
-		return reinterpret_cast<void *>(curr);
-	}
-	void FreeList::insert(void * mem)
-	{
-		auto * obj = reinterpret_cast<Object *>(mem);
-		if (m_head)
+		inline void * FreeList::extract()
 		{
-			obj->m_next = m_head;
-			m_head = obj;
+			auto * curr = m_head;
+			m_head = m_head->m_next;
+			return reinterpret_cast<void *>(curr);
 		}
-		else
+		void FreeList::insert(void * mem)
 		{
-			m_head = obj;
-			m_head->m_next = nullptr;
+			auto * obj = reinterpret_cast<Object *>(mem);
+			if (m_head)
+			{
+				obj->m_next = m_head;
+				m_head = obj;
+			}
+			else
+			{
+				m_head = obj;
+				m_head->m_next = nullptr;
+			}
 		}
-	}
-	void FreeList::insert(void * mem_start, size_type object_size, size_type object_num)
-	{
-		unsigned char * raw = reinterpret_cast<unsigned char *>(mem_start);
-		for (size_type i = 0; i < object_num; ++i)
+		void FreeList::remove(void * mem)
 		{
-			insert(raw);
-			raw += object_size;
+			if (m_head == mem)
+				m_head = m_head->m_next;
+			else if (m_head)
+			{
+				auto * prev = m_head;
+				auto * it = m_head->m_next;
+				while (it)
+				{
+					if (it == mem)
+					{
+						prev->m_next = it->m_next;
+						break;
+					}
+					prev = it;
+					it = it->m_next;
+				}
+			}
 		}
-	}
-	inline bool FreeList::empty() const
-	{
-		return m_head == nullptr;
+		void FreeList::insert_all(void * mem_start, size_type object_size, size_type object_num)
+		{
+			unsigned char * raw = reinterpret_cast<unsigned char *>(mem_start);
+			for (size_type i = 0; i < object_num; ++i)
+			{
+				insert(raw);
+				raw += object_size;
+			}
+		}
+		void FreeList::remove_all(void * mem_start, size_type object_size, size_type object_num)
+		{
+			unsigned char * raw = reinterpret_cast<unsigned char *>(mem_start);
+			for (size_type i = 0; i < object_num; ++i)
+			{
+				remove(raw);
+				raw += object_size;
+			}
+		}
+		inline bool FreeList::empty() const
+		{
+			return m_head == nullptr;
+		}
 	}
 
 	PageAllocator::PageAllocator(size_type obj_size, 
@@ -52,7 +84,7 @@ namespace memory
 		deallocate_all_pages();
 	}
 
-	inline void * PageAllocator::offset_to_memory(Page * page)
+	inline void * PageAllocator::offset_to_memory(Page * page) const
 	{
 		return reinterpret_cast<void *>(page + 1);
 	}
@@ -65,7 +97,14 @@ namespace memory
 	{
 		return as_page(global_alloc(get_page_size()));
 	}
-	void PageAllocator::do_page_dealloc(Page * page)
+	void PageAllocator::do_page_dealloc(Page * page, bool remove_objects_from_free_list)
+	{
+		if (remove_objects_from_free_list)
+			m_free_list.remove_all(offset_to_memory(page), m_object_size, m_object_num);
+
+		do_page_dealloc_internal(page);
+	}
+	void PageAllocator::do_page_dealloc_internal(Page * page)
 	{
 		global_dealloc(page);
 	}
@@ -78,14 +117,17 @@ namespace memory
 
 		// STUDY(Borja): we could track the number of free objects we have in the current page and in that way we could avoid this O(N) operation.
 		// add all the objects to the free list
-		m_free_list.insert(offset_to_memory(new_page), m_object_size, m_object_num);
+		m_free_list.insert_all(offset_to_memory(new_page), m_object_size, m_object_num);
 	}
 	void PageAllocator::deallocate_all_pages()
 	{
+		// invalidate the free list, we don't need to perform sanity checks
+		m_free_list.clear();
+
 		while (m_pages)
 		{
 			auto * next = m_pages->m_next;
-			do_page_dealloc(m_pages);
+			do_page_dealloc(m_pages, false);
 			m_pages = next;
 		}
 	}
@@ -98,7 +140,35 @@ namespace memory
 	}
 	void PageAllocator::deallocate(void * mem)
 	{
+		MEMORY_ASSERT(owns(mem));
 		m_free_list.insert(mem);
+	}
+
+	bool PageAllocator::owns(void * mem) const
+	{
+		for (auto * curr = m_pages; curr != nullptr; curr = curr->m_next)
+		{
+			if (belongs_to_page(curr, mem))
+				return true;
+		}
+
+		return false;
+	}
+
+	bool PageAllocator::belongs_to_page(Page * page, void * mem) const
+	{
+		const auto page_int = reinterpret_cast<std::ptrdiff_t>(offset_to_memory(page));
+		const auto mem_int = reinterpret_cast<std::ptrdiff_t>(mem);
+		
+		// check is within the boundaries of this page
+		if (page_int <= mem_int && 
+			(page_int + m_object_num * m_object_size) > mem_int)
+		{
+			// make sure the offset is correct
+			return (mem_int - page_int) % m_object_size == 0;
+		}
+
+		return false;
 	}
 
 	size_type PageAllocator::allocated_pages() const
@@ -127,26 +197,40 @@ namespace memory
 	{
 		auto * mem = Base::allocate();
 		fill_with_pattern(DebugPattern::ALLOCATED, mem, get_obj_size());
+		
+		m_stats.allocated_objects++;
+		m_stats.free_objects--;
+
 		return mem;
 	}
 	void DebugPageAllocator::deallocate(void * ptr)
 	{
 		fill_with_pattern(DebugPattern::DEALLOCATED, ptr, get_obj_size());
 		Base::deallocate(ptr);
+
+		m_stats.allocated_objects--;
+		m_stats.free_objects++;
 	}
 
 	DebugPageAllocator::Page * DebugPageAllocator::do_page_alloc()
 	{
 		auto * page = Base::do_page_alloc();
 		fill_with_pattern(DebugPattern::ACQUIRED, page, get_page_size());
+		
+		m_stats.allocated_pages++;
+		m_stats.free_objects += get_per_page_obj_num();
+
 		return page;
 	}
-	void DebugPageAllocator::do_page_dealloc(Page * page)
+	void DebugPageAllocator::do_page_dealloc_internal(Page * page)
 	{
 		// if we call delete on the memory of the page, the runtime library may put its own
 		// pattern, just in case it does not (i.e. release build)
 		fill_with_pattern(DebugPattern::RELEASED, page, get_page_size());
-		Base::do_page_dealloc(page);
+		Base::do_page_dealloc_internal(page);
+
+		m_stats.allocated_pages--;
+		m_stats.free_objects -= get_per_page_obj_num();
 	}
 #endif
 }
