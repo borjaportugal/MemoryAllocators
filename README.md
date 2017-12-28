@@ -48,8 +48,5 @@ This allocator uses a free list internally to keep track of the memory that has 
 ### DebugPageAllocator
 Extension of the PageAllocator that writes patterns in the memory and gives the possibility to add padding to the allocations to make sure the user does not write to memory outside the one that has allocated.
 
-## Pending to implement
-### Arena
-### Pool
 
 

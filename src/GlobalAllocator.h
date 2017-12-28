@@ -36,11 +36,9 @@ namespace memory
 			return global_dealloc(reinterpret_cast<void *>(mem));
 		}
 
-		// assume we own all memory
+		// assume we own all memory and that we won't allocate more memory than the one the system can handle
 		static bool owns(const T * p) { return p != nullptr; }
-		// assume the application won't allocate more memory than the one the system can handle
 		static bool is_full() { return false; }
-		// assume the application won't allocate more memory than the one the system can handle
 		static size_type free_size() { return ~0ul; }
 	};
 

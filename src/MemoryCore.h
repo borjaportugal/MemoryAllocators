@@ -78,7 +78,6 @@ namespace memory
 	}
 	
 #else
-
 	inline void fill_with_pattern(DebugPattern, void *, size_type) {}
 #endif
 }

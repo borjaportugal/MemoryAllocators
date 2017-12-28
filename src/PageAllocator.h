@@ -90,8 +90,8 @@ namespace memory
 
 #if MEMORY_DEBUG_ENABLED
 
-
-	/// \brief	Writes patters in the memory.
+	/// \brief	Provides the same functionality of a page allocator and 
+	///			writes patters in the memory to detect memory corruption.
 	class DebugPageAllocator
 		: public PageAllocator
 	{

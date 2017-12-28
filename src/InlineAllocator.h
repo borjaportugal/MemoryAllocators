@@ -218,7 +218,7 @@ namespace memory
 	namespace impl
 	{
 		/// \brief	Inline allocator that generates statistics of its allocations.
-		///			The user should use the macro DEBUG_INLINE_ALLOCATOR to instantiate inline allocators in which he wants statistics.
+		///			The user should use the macro DEBUG_INLINE_ALLOCATOR(...) to instantiate inline allocators in which he wants statistics.
 		template <size_type N, typename T = InlineAllocatorWildcard>
 		class DebugInlineAllocator
 			: public DefaultInlineAllocator<N, T>
@@ -295,7 +295,9 @@ std::ostream & operator<< (std::ostream & os, const ::memory::DebugInlineAllocat
 #else
 
 /// \brief	Must be used to define inline allocators from which we want statistics.
-#	define DEBUG_INLINE_ALLOCATOR(N, T, allocator_name, alloc_typename) using alloc_typename = ::memory::InlineAllocator<N, T>; alloc_typename allocator_name
+#	define DEBUG_INLINE_ALLOCATOR(N, T, allocator_name, alloc_typename) \
+	using alloc_typename = ::memory::InlineAllocator<N, T>;				\
+	::memory::InlineAllocator<N, T> allocator_name
 
 #endif
 

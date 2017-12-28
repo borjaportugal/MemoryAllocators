@@ -123,11 +123,12 @@ namespace memory
 	{
 		// invalidate the free list, we don't need to perform sanity checks
 		m_free_list.clear();
+		constexpr bool remove_objects_from_free_list = false;
 
 		while (m_pages)
 		{
 			auto * next = m_pages->m_next;
-			do_page_dealloc(m_pages, false);
+			do_page_dealloc(m_pages, remove_objects_from_free_list);
 			m_pages = next;
 		}
 	}
@@ -157,14 +158,15 @@ namespace memory
 
 	bool PageAllocator::belongs_to_page(Page * page, void * mem) const
 	{
-		const auto page_int = reinterpret_cast<std::ptrdiff_t>(offset_to_memory(page));
-		const auto mem_int = reinterpret_cast<std::ptrdiff_t>(mem);
+		const auto page_int = static_cast<size_type>(reinterpret_cast<std::ptrdiff_t>(offset_to_memory(page)));
+		const auto mem_int = static_cast<size_type>(reinterpret_cast<std::ptrdiff_t>(mem));
 		
 		// check is within the boundaries of this page
 		if (page_int <= mem_int && 
 			(page_int + m_object_num * m_object_size) > mem_int)
 		{
-			// make sure the offset is correct
+			// make sure the offset is correct 
+			// (the pointer is pointing to the beggining of the object)
 			return (mem_int - page_int) % m_object_size == 0;
 		}
 

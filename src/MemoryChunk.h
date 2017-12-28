@@ -13,6 +13,7 @@ found in the top-level directory of this distribution.
 
 namespace memory
 {
+	/// \brief	Manages a block of memory, the class is responsible of the block deletion.
 	class MemoryChunk
 	{
 	public:
