@@ -90,7 +90,7 @@ namespace memory
 	}
 	inline size_type PageAllocator::get_page_size() const
 	{
-		return m_object_num * m_object_size + sizeof(Page*);
+		return m_object_num * m_object_size + sizeof(void*);
 	}
 
 	PageAllocator::Page * PageAllocator::do_page_alloc()

@@ -13,11 +13,11 @@ using namespace memory;	// avoid verbosity on tests
 
 TEST_F(page_allocator_computes_the_size_of_the_page_correctly)
 {
-	PageAllocator alloc1{ sizeof(int), 4 };
-	TEST_ASSERT(alloc1.get_page_size() == sizeof(int) * 4 + sizeof(void*));
+	PageAllocator alloc1{ sizeof(long long), 4 };
+	TEST_ASSERT(alloc1.get_page_size() == sizeof(long long) * 4 + sizeof(void*));
 
 	// minimum size needs to be of a pointer
-	PageAllocator alloc2{ 1, 4 };
+	PageAllocator alloc2{ sizeof(char), 4 };
 	TEST_ASSERT(alloc2.get_page_size() == sizeof(void*) * 4 + sizeof(void*));
 }
 
@@ -63,13 +63,13 @@ TEST_F(page_allocator_track_objects_with_free_list)
 
 TEST_F(page_allocator_returns_objects_at_the_correct_offsets)
 {
-	PageAllocator alloc{ sizeof(int), 4, true };
+	PageAllocator alloc{ sizeof(long long), 4, true };
 
 	// assuming first returned pointer is the last in a page
-	int * a3 = reinterpret_cast<int *>(alloc.allocate());
-	int * a2 = reinterpret_cast<int *>(alloc.allocate());
-	int * a1 = reinterpret_cast<int *>(alloc.allocate());
-	int * a0 = reinterpret_cast<int *>(alloc.allocate());
+	const auto * a3 = reinterpret_cast<long long *>(alloc.allocate());
+	const auto * a2 = reinterpret_cast<long long *>(alloc.allocate());
+	const auto * a1 = reinterpret_cast<long long *>(alloc.allocate());
+	const auto * a0 = reinterpret_cast<long long *>(alloc.allocate());
 
 	TEST_ASSERT(a0 + 1 == a1);
 	TEST_ASSERT(a1 + 1 == a2);
