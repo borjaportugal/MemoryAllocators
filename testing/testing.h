@@ -88,6 +88,29 @@ namespace testing
 
 		/// \brief	Helper for not including TestRunner here.
 		void register_test(const Test & test);
+
+		/// \brief	Scopeward
+		template<typename F>
+		class OnScopeExit
+		{
+		public:
+			explicit OnScopeExit(F && f)
+				: m_func{ std::move(f) }
+			{}
+			~OnScopeExit() { m_func(); }
+
+		private:
+			F m_func;
+		};
+
+		struct OnScopeExitHelper
+		{
+			template <typename F>
+			OnScopeExit<F> operator+(F && f)
+			{
+				return OnScopeExit<F>{ std::move(f) };
+			}
+		};
 	}
 
 	/// \brief	Base class for user defined categories.
@@ -215,9 +238,13 @@ namespace testing { namespace impl {														\
 
 #define TEST_ASSERT_ALL(b, e, comp) TEST_ASSERT(std::all_of(b, e, [](auto v){ return v comp; }))
 
-///	\brief	Placeholder macro to mark paths that the execution should follow in order to make the test pass,
+///	\brief	Macro used for readability, marks paths that the execution should follow in order to make the test pass,
 ///	lets the test continue executing.
 #define TEST_SUCCEDED()		
+
+/// \brief Declares an scope ward object that will be called when the test ends, either when it succeeds or fails.
+#define TEST_ON_EXIT()	\
+	const auto _TESTING_UNNAMED_VARIABLE(_test_on_exit) = ::testing::impl::OnScopeExitHelper{} + [&]()
 
 /// \brief	Declares a test
 #define TEST_F(test_name)	_TESTING_DECLARE_TEST(global, test_name)

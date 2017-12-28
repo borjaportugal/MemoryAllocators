@@ -145,12 +145,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\InlineAllocator.cpp" />
+    <ClCompile Include="src\MemoryCore.cpp" />
     <ClCompile Include="src\PageAllocator.cpp" />
     <ClCompile Include="src\StackAllocator.cpp" />
     <ClCompile Include="testing\testing.cpp" />
     <ClCompile Include="tests\FallbackAllocator-test.cpp" />
     <ClCompile Include="tests\InlineAllocator-test.cpp" />
     <ClCompile Include="tests\MemoryChunk-test.cpp" />
+    <ClCompile Include="tests\MemoryCore-test.cpp" />
     <ClCompile Include="tests\PageAllocator-test.cpp" />
     <ClCompile Include="tests\StackAllocator-test.cpp" />
     <ClCompile Include="tests\tests_main.cpp" />

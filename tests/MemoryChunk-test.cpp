@@ -9,7 +9,7 @@ found in the top-level directory of this distribution.
 #include "testing\testing.h"
 
 #include "MemoryChunk.h"
-using namespace memory;
+using namespace memory;	// avoid verbosity on tests
 
 TEST_F(memory_chunk_provides_simple_gettors)
 {

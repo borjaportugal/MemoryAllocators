@@ -10,7 +10,7 @@ found in the top-level directory of this distribution.
 #include "testing\testing.h"
 
 #include "StackAllocator.h"
-using namespace memory;
+using namespace memory;	// avoid verbosity on tests
 
 // StackAllocator
 

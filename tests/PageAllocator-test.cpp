@@ -9,7 +9,7 @@ found in the top-level directory of this distribution.
 #include "PageAllocator.h"
 
 #include "testing\testing.h"
-using namespace memory;
+using namespace memory;	// avoid verbosity on tests
 
 TEST_F(page_allocator_computes_the_size_of_the_page_correctly)
 {

@@ -11,7 +11,7 @@ found in the top-level directory of this distribution.
 
 #define DEBUG_INLINE_ALLOCATOR_ENABLED 1
 #include "InlineAllocator.h"
-using namespace memory;
+using namespace memory;	// avoid verbosity on tests
 
 #include <type_traits>
 

@@ -30,16 +30,17 @@ found in the top-level directory of this distribution.
 #include <cstddef>	// std::size_t
 #include <cstring>	// std::memset
 
+#include <functional>
+
 namespace memory
 {
 	using size_type = std::size_t;
 
-	// TODO(Borja): callback for when we run out of memory
+	using out_of_memory_callback_type = std::function<void()>;
+	out_of_memory_callback_type get_out_of_memory_callback();
+	void set_out_of_memory_callback(out_of_memory_callback_type callback);
 
-	inline void * global_alloc(size_type n)
-	{
-		return ::operator new(n);
-	}
+	void * global_alloc(size_type n);
 	inline void global_dealloc(void * mem)
 	{
 		::operator delete(mem);
